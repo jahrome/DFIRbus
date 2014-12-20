@@ -41,8 +41,8 @@ class WindowsPartition(Agent):
         desc = Descriptor(plugin, plugin, out, descriptor.domain, \
                 agent=self._name_, processing_time=(time.time()-start))
         self.push(desc)
-        self.declare_link(descriptor, desc, plugin, "%s has been \
-                found in %s" % (plugin, descriptor.label))
+        self.declare_link(descriptor, desc, "WindowsPartition", "%s has been \
+                generated from %s" % (plugin, descriptor.label))
 
     def process(self, descriptor, sender_id):
         start = time.time()

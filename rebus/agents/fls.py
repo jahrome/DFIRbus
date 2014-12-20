@@ -34,5 +34,5 @@ class Fls(Agent):
         desc = Descriptor(bodyfilename, selector, json.dumps(case), descriptor.domain,
                           agent=self._name_, processing_time=(done-start))
         self.push(desc)
-        self.declare_link(descriptor, desc, "Image_slice", "%s has been \
-                          found in %s" % (bodyfilename, descriptor.label))
+        self.declare_link(descriptor, dec, "Fls", "%s has been \
+                          generated from %s" % (bodyfilename, descriptor.label))
