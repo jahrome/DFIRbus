@@ -5,6 +5,7 @@ import time
 from rebus.agent import Agent
 from rebus.descriptor import Descriptor
 from rebus.agents.inject import guess_selector
+import json
 import pytsk3
 import subprocess
 
@@ -27,16 +28,17 @@ class DiskImage(Agent):
 
     def process(self, descriptor, sender_id):
         start = time.time()
-        data = descriptor.value.strip()
+        case = json.loads(descriptor.value)
         selector = descriptor.selector
 
-        img = pytsk3.Img_Info(data)
+        img = pytsk3.Img_Info(case['hdd_location'])
         volume = pytsk3.Volume_Info(img)
         for part in volume:
             partname = '%d_%s_%d_%d' % (part.addr, part.desc, part.start, part.len)
-            command = 'sudo losetup -P -f --show --offset %d --sizelimit %d %s' % (part.start*512, part.len*512, data)
+            command = 'sudo losetup -P -f --show --offset %d --sizelimit %d %s' % (part.start*512, part.len*512, case['hdd_location'])
             proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-            loopname, err = proc.communicate()
+            case['loopdev'], err = proc.communicate()
+            case['slicenum'] = str(part.addr)
 
             if 'Primary Table' in part.desc:
                 selector = 'partition_table'
@@ -48,7 +50,7 @@ class DiskImage(Agent):
                 selector = 'unknown_partition'
 
             done = time.time()
-            desc = ImageSliceDescriptor(partname, selector, loopname, descriptor.domain,
+            desc = ImageSliceDescriptor(partname, selector, json.dumps(case), descriptor.domain,
                               agent=self._name_, processing_time=(done-start))
             self.push(desc)
             self.declare_link(descriptor, desc, "Image_slice", "%s has been \
