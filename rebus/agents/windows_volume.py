@@ -12,7 +12,7 @@ import subprocess
 
 @Agent.register
 class WindowsPartition(Agent):
-    _name_ = "windows_partition"
+    _name_ = "windows_volume"
     _desc_ = "Detect and extract Windows OS related files"
 
     def selector_filter(self, selector):
@@ -31,17 +31,6 @@ class WindowsPartition(Agent):
 
         return tsk_data
 
-    def run_regripper(self, case, start, descriptor, plugin, hivefile):
-        command = '/mnt/jer/Sources/Forensics/regripper/rip.pl -p %s -r %s' % (plugin, hivefile)
-        proc = subprocess.Popen(command, stdout=subprocess.PIPE, \
-                stderr=subprocess.PIPE, shell=True)
-        out, err = proc.communicate()
-        outfile = '%s/regripper/%s.txt' % (case['casedir'], plugin)
-        file(outfile, 'w').write(out)
-        desc = Descriptor(plugin, plugin, out, descriptor.domain, \
-                agent=self._name_, processing_time=(time.time()-start))
-        self.push(desc)
-
     def process(self, descriptor, sender_id):
         start = time.time()
         case = json.loads(descriptor.value)
@@ -56,18 +45,26 @@ class WindowsPartition(Agent):
         else:
             for f in directory:
                 if f.info.name.name.lower() == 'sam':
-                    hivefile = '%s/regripper/SAM' % case['casedir']
+                    hivefile = '%s/registry/SAM' % case['casedir']
                     file(hivefile, 'w').write(self.read_tsk_data(f))
-                    self.run_regripper(case, start, descriptor, 'samparse', hivefile)
 
                 if f.info.name.name.lower() == 'system':
-                    hivefile = '%s/regripper/SYSTEM' % case['casedir']
+                    hivefile = '%s/registry/SYSTEM' % case['casedir']
                     file(hivefile, 'w').write(self.read_tsk_data(f))
-                    for plugin in ['compname', 'services', 'svc_plus', 'nic', 'nic2', 'nic_mst2', 'shares']:
-                        self.run_regripper(case, start, descriptor, plugin, hivefile)
 
                 if f.info.name.name.lower() == 'software':
-                    hivefile = '%s/regripper/SOFTWARE' % case['casedir']
+                    hivefile = '%s/registry/SOFTWARE' % case['casedir']
                     file(hivefile, 'w').write(self.read_tsk_data(f))
-                    for plugin in ['winver', 'profilelist', 'soft_runplus']:
-                        self.run_regripper(case, start, descriptor, plugin, hivefile)
+
+                if f.info.name.name.lower() == 'security':
+                    hivefile = '%s/registry/SECURITY' % case['casedir']
+                    file(hivefile, 'w').write(self.read_tsk_data(f))
+
+            regdir = '%s/registry' % case['casedir']
+            command = '/mnt/jer/Sources/Forensics/regripper_git/auto_rip.pl -s %s -r %s -c all' % (regdir, regdir)
+            proc = subprocess.Popen(command, stdout=subprocess.PIPE, \
+                    stderr=subprocess.PIPE, shell=True)
+            out, err = proc.communicate()
+            desc = Descriptor('auto_rip', 'auto_rip', json.dumps(case), descriptor.domain, \
+                    agent=self._name_, processing_time=(time.time()-start))
+            self.push(desc)

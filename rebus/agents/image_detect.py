@@ -19,7 +19,7 @@ class ImageSliceDescriptor(Descriptor):
 
 @Agent.register
 class DiskImage(Agent):
-    _name_ = "disk_image"
+    _name_ = "image_detect"
     _desc_ = "Guess the partition layout of a volume system"
 
     def selector_filter(self, selector):
