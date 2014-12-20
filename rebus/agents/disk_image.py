@@ -12,7 +12,6 @@ import subprocess
 
 class ImageSliceDescriptor(Descriptor):
     def __del__(self):
-        print self.value
         command = 'sudo losetup -d %s' % self.value
         proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         loopname, err = proc.communicate()
@@ -37,7 +36,8 @@ class DiskImage(Agent):
             partname = '%d_%s_%d_%d' % (part.addr, part.desc, part.start, part.len)
             command = 'sudo losetup -P -f --show --offset %d --sizelimit %d %s' % (part.start*512, part.len*512, case['hdd_location'])
             proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-            case['loopdev'], err = proc.communicate()
+            out, err = proc.communicate()
+            case['loopdev'] = out.strip()
             case['slicenum'] = str(part.addr)
 
             if 'Primary Table' in part.desc:

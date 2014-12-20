@@ -21,15 +21,11 @@ class Fls(Agent):
         start = time.time()
         case = json.loads(descriptor.value)
         selector = descriptor.selector
-        print 'in fls', case
 
         command = 'fls -z %s -m %s -r %s' % \
                 (case['timezone'], case['casename'][:4]+case['slicenum'], case['loopdev'])
-        print command
-        #os.system(command)
         proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         out, err = proc.communicate()
-        #print out, err
         bodyfilename = 'body_fls_%s' % case['slicenum']
         file('%s/filesystem/%s' % (case['casedir'], bodyfilename), 'w').write(out)
 
