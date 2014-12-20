@@ -128,5 +128,3 @@ class FiletypeHash(Agent):
         desc = Descriptor(md5sfile, selector, json.dumps(case), descriptor.domain,
                           agent=self._name_, processing_time=(done-start))
         self.push(desc)
-        self.declare_link(descriptor, desc, "FiletypeHash", "%s has been \
-                          generated from %s" % (md5sfile, descriptor.label))
