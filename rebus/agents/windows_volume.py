@@ -4,7 +4,6 @@ import os
 import time
 from rebus.agent import Agent
 from rebus.descriptor import Descriptor
-from rebus.agents.inject import guess_selector
 import json
 import pytsk3
 import subprocess
@@ -16,7 +15,7 @@ class WindowsPartition(Agent):
     _desc_ = "Detect and extract Windows OS related files"
 
     def selector_filter(self, selector):
-        return selector.startswith("ntfs_partition/")
+        return selector.startswith("slice_ntfs_partition/")
 
     def read_tsk_data(self, f):
         offset = 0
@@ -34,14 +33,15 @@ class WindowsPartition(Agent):
     def process(self, descriptor, sender_id):
         start = time.time()
         case = json.loads(descriptor.value)
-        selector = descriptor.selector
 
-        img = pytsk3.Img_Info(case['loopdev'])
-        fs = pytsk3.FS_Info(img)
+        print 'Processing slice %s' % case['slicenum']
         try:
+            img = pytsk3.Img_Info(case['device'])
+            fs = pytsk3.FS_Info(img)
             directory = fs.open_dir(path='/windows/system32/config')
-        except IOError:
-            pass
+        except Exception, e:
+            import traceback
+            print traceback.format_exc()
         else:
             for f in directory:
                 if f.info.name.name.lower() == 'sam':
@@ -62,9 +62,10 @@ class WindowsPartition(Agent):
 
             regdir = '%s/registry' % case['casedir']
             command = '/mnt/jer/Sources/Forensics/regripper_git/auto_rip.pl -s %s -r %s -c all' % (regdir, regdir)
+            print command
             proc = subprocess.Popen(command, stdout=subprocess.PIPE, \
                     stderr=subprocess.PIPE, shell=True)
             out, err = proc.communicate()
-            desc = Descriptor('auto_rip', 'auto_rip', json.dumps(case), descriptor.domain, \
+            desc = Descriptor('%s_auto_rip' % case['slicenum'], 'auto_rip', json.dumps(case), descriptor.domain, \
                     agent=self._name_, processing_time=(time.time()-start))
             self.push(desc)

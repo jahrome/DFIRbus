@@ -4,7 +4,6 @@ import os
 import time
 from rebus.agent import Agent
 from rebus.descriptor import Descriptor
-from rebus.agents.inject import guess_selector
 import json
 import pytsk3
 import magic
@@ -26,7 +25,7 @@ class FiletypeHash(Agent):
     _desc_ = "Guess filetypes and hash PE files"
 
     def selector_filter(self, selector):
-        return selector.startswith("ntfs_partition/")
+        return selector.startswith("slice_ntfs_partition/")
 
     def read_tsk_data(self, f):
         offset = 0
@@ -106,11 +105,11 @@ class FiletypeHash(Agent):
     def process(self, descriptor, sender_id):
         start = time.time()
         case = json.loads(descriptor.value)
-        selector = descriptor.selector
 
+        print 'Processing slice %s' % case['slicenum']
         self.ms = magic.open(magic.MAGIC_NONE)
         self.ms.load()
-        img = pytsk3.Img_Info(case['loopdev'])
+        img = pytsk3.Img_Info(case['device'])
         fs = pytsk3.FS_Info(img)
         directory = fs.open_dir(path='/')
         self.warnings = []
@@ -118,13 +117,15 @@ class FiletypeHash(Agent):
         self.filetypes = {}
         self.mntpoint = case['slicenum']
         self.process_directory(directory, [], [])
-        file('%s/hashes/%s_warnings.txt' % (case['casedir'], case['slicenum']), 'w').write('\n'.join(self.warnings))
-        md5sfile = '%s_md5s.json' % case['slicenum']
-        file('%s/hashes/%s' % (case['casedir'], md5sfile), 'w').write(json.dumps(self.md5s))
-        file('%s/hashes/%s_filetypes.json' % (case['casedir'], case['slicenum']), 'w').write(json.dumps(self.filetypes))
 
-        selector = 'md5_list'
-        done = time.time()
-        desc = Descriptor(md5sfile, selector, json.dumps(case), descriptor.domain,
-                          agent=self._name_, processing_time=(done-start))
+        md5sfile = '%s_md5s.json' % case['slicenum']
+        file('%s/hashes/%s_warnings.txt' % (case['casedir'], \
+                case['slicenum']), 'w').write('\n'.join(self.warnings))
+        file('%s/hashes/%s' % (case['casedir'], \
+                md5sfile), 'w').write(json.dumps(self.md5s))
+        file('%s/hashes/%s_filetypes.json' % (case['casedir'], \
+                case['slicenum']), 'w').write(json.dumps(self.filetypes))
+
+        desc = Descriptor(md5sfile, 'md5_list', json.dumps(case), descriptor.domain,
+                agent=self._name_, processing_time=(time.time()-start))
         self.push(desc)
