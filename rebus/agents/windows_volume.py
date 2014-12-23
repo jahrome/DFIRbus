@@ -18,6 +18,10 @@ class WindowsPartition(Agent):
         return selector.startswith("slice_ntfs_partition/")
 
     def read_tsk_data(self, f):
+        if not f.info.meta:
+            print "\nWARNING: No meta for file %s\n" % f.info.name.name
+            return ''
+
         offset = 0
         size = f.info.meta.size
         tsk_data = ''
@@ -34,29 +38,36 @@ class WindowsPartition(Agent):
         start = time.time()
         case = json.loads(descriptor.value)
 
-        print 'Processing slice %s' % case['slicenum']
+        print '\nProcessing slice %s' % case['slicenum']
         try:
             img = pytsk3.Img_Info(case['device'])
             fs = pytsk3.FS_Info(img)
+        except Exception, e:
+            print 'Unable to read partition, aborting'
+            return
+
+        try:
             directory = fs.open_dir(path='/windows/system32/config')
         except Exception, e:
-            import traceback
-            print traceback.format_exc()
+            print '/windows/system32/config not found'
         else:
             for f in directory:
-                if f.info.name.name.lower() == 'sam':
+                if f.info.name.name.lower().endswith('.evt'):
+                    file('%s/eventlog/%s' % (case['casedir'], f.info.name.name), 'w').write(self.read_tsk_data(f))
+
+                elif f.info.name.name.lower() == 'sam':
                     hivefile = '%s/registry/SAM' % case['casedir']
                     file(hivefile, 'w').write(self.read_tsk_data(f))
 
-                if f.info.name.name.lower() == 'system':
+                elif f.info.name.name.lower() == 'system':
                     hivefile = '%s/registry/SYSTEM' % case['casedir']
                     file(hivefile, 'w').write(self.read_tsk_data(f))
 
-                if f.info.name.name.lower() == 'software':
+                elif f.info.name.name.lower() == 'software':
                     hivefile = '%s/registry/SOFTWARE' % case['casedir']
                     file(hivefile, 'w').write(self.read_tsk_data(f))
 
-                if f.info.name.name.lower() == 'security':
+                elif f.info.name.name.lower() == 'security':
                     hivefile = '%s/registry/SECURITY' % case['casedir']
                     file(hivefile, 'w').write(self.read_tsk_data(f))
 
@@ -69,3 +80,12 @@ class WindowsPartition(Agent):
             desc = Descriptor('%s_auto_rip' % case['slicenum'], 'auto_rip', json.dumps(case), descriptor.domain, \
                     agent=self._name_, processing_time=(time.time()-start))
             self.push(desc)
+
+        try:
+            directory = fs.open_dir(path='/windows/system32/winevt/logs')
+        except Exception, e:
+            print '/windows/system32/winevt/logs not found'
+        else:
+            for f in directory:
+                if f.info.name.name.lower().endswith('.evtx'):
+                    file('%s/eventlog/%s' % (case['casedir'], f.info.name.name), 'w').write(self.read_tsk_data(f))

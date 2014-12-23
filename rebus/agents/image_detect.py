@@ -13,6 +13,7 @@ import subprocess
 class ImageSliceDescriptor(Descriptor):
     def __del__(self):
         case = json.loads(self.value)
+        print 'Deletion attempt of %s' % case['device']
         if 'loop' in case['device']:
             command = 'sudo losetup -d %s' % case['device']
             proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)

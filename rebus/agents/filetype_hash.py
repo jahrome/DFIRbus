@@ -28,6 +28,10 @@ class FiletypeHash(Agent):
         return selector.startswith("slice_ntfs_partition/")
 
     def read_tsk_data(self, f):
+        if not f.info.meta:
+            print "\nWARNING: No meta for file %s\n" % f.info.name.name
+            return ''
+
         offset = 0
         size = f.info.meta.size
         tsk_data = ''
@@ -106,7 +110,7 @@ class FiletypeHash(Agent):
         start = time.time()
         case = json.loads(descriptor.value)
 
-        print 'Processing slice %s' % case['slicenum']
+        print '\nProcessing slice %s' % case['slicenum']
         self.ms = magic.open(magic.MAGIC_NONE)
         self.ms.load()
         img = pytsk3.Img_Info(case['device'])
