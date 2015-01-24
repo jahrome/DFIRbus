@@ -10,16 +10,6 @@ import pytsk3
 import subprocess
 
 
-class ImageSliceDescriptor(Descriptor):
-    def __del__(self):
-        case = json.loads(self.value)
-        print 'Deletion attempt of %s' % case['device']
-        if 'loop' in case['device']:
-            command = 'sudo losetup -d %s' % case['device']
-            proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-            loopname, err = proc.communicate()
-
-
 @Agent.register
 class ImageDetect(Agent):
     _name_ = "image_detect"
@@ -72,6 +62,6 @@ class ImageDetect(Agent):
                 selector = 'slice_partition_unknown'
 
             print partname
-            desc = ImageSliceDescriptor(partname, selector, json.dumps(case), descriptor.domain, \
+            desc = Descriptor(partname, selector, json.dumps(case), descriptor.domain, \
                     agent=self._name_, processing_time=(time.time()-start))
             self.push(desc)
