@@ -21,7 +21,7 @@ class Blkls(Agent):
         case = json.loads(descriptor.value)
 
         outfilename = '%s_unalloc' % case['slicenum']
-        command = 'blkls -A %s > %s/foremost/%s' % (case['device'], case['casedir'], outfilename)
+        command = 'ionice -c 3 blkls -A %s > %s/foremost/%s' % (case['device'], case['casedir'], outfilename)
         print command
         proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         out, err = proc.communicate()
