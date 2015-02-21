@@ -1,18 +1,15 @@
-#! /usr/bin/env python
-
 import os
 import time
 from rebus.agent import Agent
 from rebus.descriptor import Descriptor
 import json
-import subprocess
 import pprint
 
 
 @Agent.register
 class Autoruns(Agent):
     _name_ = "autoruns"
-    _desc_ = "Identify executables in autorun locations"
+    _desc_ = "Identify executable images of Windows autorun locations"
 
     def selector_filter(self, selector):
         return "auto_rip/" in selector
@@ -21,17 +18,19 @@ class Autoruns(Agent):
         start = time.time()
         case = json.loads(descriptor.value)
 
+        print 'Processing slice %s' % case['slicenum']
         progs = []
-        for i in file('%s/registry/07_autoruns_information.txt' %
-                case['casedir'], 'r').readlines():
+        for i in file('%s/registry/07_autoruns_information.txt' % case['casedir'], 'r').readlines():
             if 'ImagePath = ' in i:
                 key = i.split(' = ', 1)[1].strip()
                 if key:
                     keyl = key.strip().strip('"')\
-                            .split('/')[0].strip().strip('"')\
+                            .split(' /')[0].strip().strip('"')\
                             .split(' -')[0].strip().strip('"')\
-                            .lower().strip('c:\\')\
                             .replace('\\', '/')\
+                            .lower()\
+                            .strip('??/')\
+                            .strip('c:/')\
                             .replace('%programfiles%', 'program files')\
                             .replace('%windir%', 'windows')\
                             .replace('%systemroot%', 'windows')\
@@ -47,6 +46,6 @@ class Autoruns(Agent):
         case['file_list'] = {'out_dir': os.path.join(case['casedir'], 'extracted', 'autoruns'),
                              'files': list(set(progs))}
         pprint.pprint(case)
-        desc = Descriptor('autoruns', 'file_list', json.dumps(case), descriptor.domain,
-                agent=self._name_, processing_time=(time.time()-start))
+        desc = Descriptor('%s_autoruns' % case['slicenum'], 'file_list', json.dumps(case),
+                          descriptor.domain, agent=self._name_, processing_time=(time.time()-start))
         self.push(desc)

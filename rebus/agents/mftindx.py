@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 import os
 import time
 from rebus.agent import Agent
@@ -20,14 +18,16 @@ class MftIndx(Agent):
         start = time.time()
         case = json.loads(descriptor.value)
 
+        print 'Processing %s' % case['device']
         bodyfilename = '%s_body_mftindx' % case['slicenum']
-        command = 'MFTINDX.py -t image -o 0 -l -s -m -d %s' % (case['device'])
+        out_file = os.path.join(case['casedir'], 'filesystem', bodyfilename)
+        command = 'MFTINDX.py -t image -o 0 -l -s -m -d %s > %s' % (case['device'], out_file)
         print command
         proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         out, err = proc.communicate()
         print err
-        file('%s/filesystem/%s' % (case['casedir'], bodyfilename), 'w').write(out)
 
+        case['body_file'] = out_file
         desc = Descriptor(bodyfilename, 'body_file', json.dumps(case), descriptor.domain,
-                agent=self._name_, processing_time=(time.time()-start))
+                          agent=self._name_, processing_time=(time.time()-start))
         self.push(desc)

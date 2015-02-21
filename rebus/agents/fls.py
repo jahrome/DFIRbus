@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 import os
 import time
 from rebus.agent import Agent
@@ -20,14 +18,18 @@ class Fls(Agent):
         start = time.time()
         case = json.loads(descriptor.value)
 
-        command = 'fls -z %s -m %s -r %s' % \
-                (case['timezone'], case['casename'][:4]+case['slicenum'], case['device'])
+        print 'Processing slice %s' % case['slicenum']
+        bodyfilename = '%s_body_fls' % case['slicenum']
+        out_file = os.path.join(case['casedir'], 'filesystem', bodyfilename)
+        command = 'fls -z %s -m %s -r %s > %s' % (case['timezone'],
+                                                  case['casename'][:4]+case['slicenum'],
+                                                  case['device'], out_file)
         print command
         proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         out, err = proc.communicate()
-        bodyfilename = '%s_body_fls' % case['slicenum']
-        file('%s/filesystem/%s' % (case['casedir'], bodyfilename), 'w').write(out)
+        print err
 
+        case['body_file'] = out_file
         desc = Descriptor(bodyfilename, 'body_file', json.dumps(case), descriptor.domain,
-                agent=self._name_, processing_time=(time.time()-start))
+                          agent=self._name_, processing_time=(time.time()-start))
         self.push(desc)

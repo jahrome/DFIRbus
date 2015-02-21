@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 import os
 import time
 from rebus.agent import Agent
@@ -27,7 +25,8 @@ class ExtractFiles(Agent):
         while offset < size:
             available_to_read = min(1024 * 1024, size - offset)
             data = f.read_random(offset, available_to_read)
-            if not data: break
+            if not data:
+                break
             offset += len(data)
             tsk_data += data
 
@@ -37,6 +36,7 @@ class ExtractFiles(Agent):
         start = time.time()
         case = json.loads(descriptor.value)
 
+        print 'Processing %s' % case['file_list']
         img = pytsk3.Img_Info(case['device'])
         fs = pytsk3.FS_Info(img)
         if not os.path.exists(case['file_list']['out_dir']):
@@ -55,6 +55,7 @@ class ExtractFiles(Agent):
                 print '%s not found' % i
 
         case['extracted_files'] = case['file_list']['out_dir']
-        desc = Descriptor('extract_files', 'extracted_files', json.dumps(case), descriptor.domain,
-                agent=self._name_, processing_time=(time.time()-start))
+        basedir = os.path.basename(os.path.join(case['file_list']['out_dir']))
+        desc = Descriptor('%s_extract_files' % basedir, 'extracted_files', json.dumps(case),
+                          descriptor.domain, agent=self._name_, processing_time=(time.time()-start))
         self.push(desc)

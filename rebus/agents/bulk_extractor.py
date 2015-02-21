@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 import os
 import time
 from rebus.agent import Agent
@@ -20,12 +18,15 @@ class BulkExtractor(Agent):
         start = time.time()
         case = json.loads(descriptor.value)
 
+        print 'Processing slice %s' % case['slicenum']
         resdir = '%s_bulk' % (case['slicenum'])
-        command = 'ionice -c 3 bulk_extractor -e wordlist -o %s/bulk/%s %s' % (case['casedir'], resdir, case['device'])
+        out_dir = os.path.join(case['casedir'], 'bulk', resdir)
+        command = 'ionice -c 3 bulk_extractor -e wordlist -o %s %s' % (out_dir, case['device'])
         print command
         proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         out, err = proc.communicate()
 
+        case['bulk_results'] = out_dir
         desc = Descriptor(resdir, 'bulk_results', json.dumps(case), descriptor.domain,
-                agent=self._name_, processing_time=(time.time()-start))
+                          agent=self._name_, processing_time=(time.time()-start))
         self.push(desc)

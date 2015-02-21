@@ -1,5 +1,3 @@
-#! /usr/bin/env python
-
 import os
 import time
 from rebus.agent import Agent
@@ -13,16 +11,15 @@ import sys
 
 MAX_SIZE = 10000000
 
-NTFS_TYPES_TO_PRINT = [
-    pytsk3.TSK_FS_ATTR_TYPE_NTFS_IDXROOT,
-    pytsk3.TSK_FS_ATTR_TYPE_NTFS_DATA,
-    pytsk3.TSK_FS_ATTR_TYPE_DEFAULT,
-]
+NTFS_TYPES_TO_PRINT = [pytsk3.TSK_FS_ATTR_TYPE_NTFS_IDXROOT,
+                       pytsk3.TSK_FS_ATTR_TYPE_NTFS_DATA,
+                       pytsk3.TSK_FS_ATTR_TYPE_DEFAULT,
+                      ]
 
 @Agent.register
 class FiletypeHash(Agent):
     _name_ = "filetype_hash"
-    _desc_ = "Guess filetypes and hash PE files"
+    _desc_ = "Guess filetypes and hash PE files from a NTFS partition"
 
     def selector_filter(self, selector):
         return selector.startswith("slice_ntfs_partition/")
@@ -38,7 +35,8 @@ class FiletypeHash(Agent):
         while offset < size:
             available_to_read = min(1024 * 1024, size - offset)
             data = f.read_random(offset, available_to_read)
-            if not data: break
+            if not data:
+                break
             offset += len(data)
             tsk_data += data
 
@@ -57,8 +55,6 @@ class FiletypeHash(Agent):
                     continue
 
                 full_path = os.path.join(self.mntpoint, prefix, filename).replace('\\', '/')
-                #print "%s %d %d %s" % (full_path, f.info.meta.size, attr.info.flags, f.info.name.flags)
-
                 if 0 < f.info.meta.size < MAX_SIZE:
                     tsk_data = self.read_tsk_data(f)
                     file_type = self.ms.buffer(tsk_data)
@@ -75,7 +71,8 @@ class FiletypeHash(Agent):
             if f.info.name.name in ['.', '..']:
                 continue
 
-            if f.info.name.name in ['$AttrDef', '$Extend', '$MFTMirr', '$UpCase', '$Secure', '$BadClus', '$Boot', '$LogFile', '$MFT', '$Bitmap', '$Volume']:
+            if f.info.name.name in ['$AttrDef', '$Extend', '$MFTMirr', '$UpCase', '$Secure',
+                                    '$BadClus', '$Boot', '$LogFile', '$MFT', '$Bitmap', '$Volume']:
                 sys.stderr.write('skipping %s\n' % f.info.name.name)
                 continue
 
@@ -85,17 +82,17 @@ class FiletypeHash(Agent):
                 if inode not in stack:
                     prefix.append(f.info.name.name)
                     self.process_directory(dir_, stack, prefix)
-
             except IOError:
                 try:
-                    if f.info.meta:  # It may happend that as_directory() fails so we don't want a dir to be treated as a file, may need some improvements...
+                    if f.info.meta:  # It may happend that as_directory() fails so we don't want
+                                     # a dir to be treated as a file, may need some improvements...
                         if f.info.meta.type != pytsk3.TSK_FS_META_TYPE_DIR:
                             self.process_inode(f, '/'.join(prefix))
                     else:
                         self.process_inode(f, '/'.join(prefix))
-
                 except Exception, e:
-                    msg = '%s for %s' % (','.join([repr(i) for i in e.args]), os.path.join('/'.join(prefix), f.info.name.name))
+                    msg = '%s for %s' % (','.join([repr(i) for i in e.args]),
+                                         os.path.join('/'.join(prefix), f.info.name.name))
                     self.warnings.append(msg)
                     sys.stderr.write(msg+'\n')
                     import traceback
@@ -122,14 +119,35 @@ class FiletypeHash(Agent):
         self.mntpoint = case['slicenum']
         self.process_directory(directory, [], [])
 
-        md5sfile = '%s_md5s.json' % case['slicenum']
-        file('%s/hashes/%s_warnings.txt' % (case['casedir'], \
-                case['slicenum']), 'w').write('\n'.join(self.warnings))
-        file('%s/hashes/%s' % (case['casedir'], \
-                md5sfile), 'w').write(json.dumps(self.md5s))
-        file('%s/hashes/%s_filetypes.json' % (case['casedir'], \
-                case['slicenum']), 'w').write(json.dumps(self.filetypes))
+        resfile = '%s_warnings.txt' % case['slicenum']
+        out_file = os.path.join(case['casedir'], 'hashes', resfile)
+        file(out_file, 'w').write('\n'.join(self.warnings))
 
-        desc = Descriptor(md5sfile, 'md5_list', json.dumps(case), descriptor.domain,
-                agent=self._name_, processing_time=(time.time()-start))
+        resfile = '%s_md5s.csv' % case['slicenum']
+        out_file = os.path.join(case['casedir'], 'hashes', resfile)
+        outf = file(out_file, 'w')
+        for i in self.md5s.iteritems():
+            outf.write(','.join(i)+'\n')
+        outf.close()
+
+        resfile = '%s_md5s.json' % case['slicenum']
+        out_file = os.path.join(case['casedir'], 'hashes', resfile)
+        file(out_file, 'w').write(json.dumps(self.md5s))
+        case['md5_list'] = out_file
+        desc = Descriptor(resfile, 'md5_list', json.dumps(case), descriptor.domain,
+                          agent=self._name_, processing_time=(time.time()-start))
+        self.push(desc)
+
+        resfile = '%s_filetypes.csv' % case['slicenum']
+        out_file = os.path.join(case['casedir'], 'hashes', resfile)
+        outf = file(out_file, 'w')
+        for i in self.filetypes.iteritems():
+            outf.write(','.join(i)+'\n')
+        outf.close()
+
+        resfile = '%s_filetypes.json' % case['slicenum']
+        out_file = os.path.join(case['casedir'], 'hashes', resfile)
+        file(out_file, 'w').write(json.dumps(self.filetypes))
+        desc = Descriptor(resfile, 'filetype_list', json.dumps(case), descriptor.domain,
+                          agent=self._name_, processing_time=(time.time()-start))
         self.push(desc)

@@ -1,19 +1,16 @@
-#! /usr/bin/env python
-
 import os
 import time
 from rebus.agent import Agent
 from rebus.descriptor import Descriptor
 import json
 import pytsk3
-import subprocess
 import traceback
 
 
 @Agent.register
 class Ads(Agent):
     _name_ = "ads"
-    _desc_ = "List Alternate Data Streams"
+    _desc_ = "List NTFS Alternate Data Streams"
 
     def selector_filter(self, selector):
         return selector.startswith("slice_ntfs_partition/")
@@ -44,7 +41,7 @@ class Ads(Agent):
                             self.process_inode(f, '/'.join(prefix))
                     else:
                         self.process_inode(f, '/'.join(prefix))
-                except Exception, e:
+                except:
                     print traceback.format_exc()
 
         if len(stack):
@@ -65,9 +62,12 @@ class Ads(Agent):
             self.list_directory(directory, [], [])
 
             outfilename = '%s_ads.csv' % case['slicenum']
-            file('%s/filesystem/%s' % (case['casedir'], outfilename), 'w').write('\n'.join(self.results))
+            out_file = os.path.join(case['casedir'], 'filesystem', outfilename)
+            file(out_file, 'w').write('\n'.join(self.results))
+
+            case['ads_results'] = out_file
             desc = Descriptor(outfilename, 'ads_results', json.dumps(case), descriptor.domain,
-                    agent=self._name_, processing_time=(time.time()-start))
+                              agent=self._name_, processing_time=(time.time()-start))
             self.push(desc)
-        except Exception, e:
+        except:
             print traceback.format_exc()

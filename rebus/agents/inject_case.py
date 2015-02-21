@@ -23,24 +23,19 @@ class InjectCase(Agent):
                                help="Use LABEL instead of default")
 
     def run(self):
-        case = {
-                "casename": os.getenv('CASENAME'),
+        case = {"casename": os.getenv('CASENAME'),
                 "casedir": os.getenv('CASEDIR'),
                 "timezone": os.getenv('TIMEZONE'),
                 "hdd_location": os.getenv('HDD_LOCATION'),
                 "volatility_location": os.getenv('VOLATILITY_LOCATION'),
                 "volatility_profile": os.getenv('VOLATILITY_PROFILE'),
-                }
-        if self.options.file:
-            if self.options.selector in ['file_list']:
-                case[self.options.selector] = file[self.options.file].readlines()
+               }
+        #TODO: load case from file
 
         pprint.pprint(case)
         start = time.time()
-        label = self.options.label if self.options.label else \
-            os.path.basename(f)
+        label = self.options.label if self.options.label else case["casename"]
         selector = self.options.selector
-        done = time.time()
         desc = Descriptor(label, selector, json.dumps(case), self.domain,
-                          agent=self._name_, processing_time=(done-start))
+                          agent=self._name_, processing_time=(time.time()-start))
         self.push(desc)
