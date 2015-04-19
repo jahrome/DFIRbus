@@ -1,0 +1,67 @@
+screen -t rebus
+select 0
+stuff "rebus_master_dbus^M"
+
+screen -t web_interface
+select 1
+stuff "rebus_agent -m dfirbus.agents --bus dbus web_interface^M"
+
+screen -t ads
+select 2
+stuff "rebus_agent -m dfirbus.agents --bus dbus ads^M"
+
+screen -t autoruns
+select 3
+stuff "rebus_agent -m dfirbus.agents --bus dbus autoruns^M"
+
+screen -t blkls
+select 4
+stuff "rebus_agent -m dfirbus.agents --bus dbus blkls^M"
+
+screen -t bulk_extractor
+select 5
+stuff "rebus_agent -m dfirbus.agents --bus dbus bulk_extractor^M"
+
+screen -t extract_files
+select 6
+stuff "rebus_agent -m dfirbus.agents --bus dbus extract_files^M"
+
+screen -t filetype_hash
+select 7
+stuff "rebus_agent -m dfirbus.agents --bus dbus filetype_hash^M"
+
+screen -t fls
+select 8
+stuff "rebus_agent -m dfirbus.agents --bus dbus fls^M"
+
+screen -t image_detect
+select 9
+stuff "rebus_agent -m dfirbus.agents --bus dbus image_detect^M"
+
+screen -t mactime
+select 10
+stuff "rebus_agent -m dfirbus.agents --bus dbus mactime^M"
+
+screen -t mftindx
+select 11
+stuff "rebus_agent -m dfirbus.agents --bus dbus mftindx^M"
+
+screen -t plaso
+select 12
+stuff "rebus_agent -m dfirbus.agents --bus dbus plaso^M"
+
+screen -t strings
+select 13
+stuff "rebus_agent -m dfirbus.agents --bus dbus strings^M"
+
+screen -t usnjrnl
+select 14
+stuff "rebus_agent -m dfirbus.agents --bus dbus usnjrnl^M"
+
+screen -t windows_volume
+select 15
+stuff "rebus_agent -m dfirbus.agents --bus dbus windows_volume^M"
+
+screen -t inject
+select 16
+stuff "rebus_agent -m dfirbus.agents --bus dbus inject_case^M"
